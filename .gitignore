@@ -12,3 +12,6 @@
 
 # Environment variables
 *.env
+
+# Editor
+.vscode
