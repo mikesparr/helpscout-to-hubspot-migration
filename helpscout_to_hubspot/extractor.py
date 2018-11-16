@@ -180,7 +180,7 @@ def main():
     logging.info(KEYS["Customer"])
     records = get_all_records(KEYS["Customer"])
     timestamp = datetime.datetime.utcnow().replace(microsecond=0).isoformat()
-    dict_to_file(records, "{}-{}".format(KEYS["Customer"], timestamp))
+    dict_to_file(records, "{}-{}.json".format(KEYS["Customer"], timestamp))
     logging.info("Finished")
 
 

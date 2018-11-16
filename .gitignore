@@ -15,3 +15,8 @@
 
 # Editor
 .vscode
+
+# produced files
+customers-*
+conversations-*
+mailboxes-*

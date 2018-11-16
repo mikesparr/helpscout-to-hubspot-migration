@@ -37,8 +37,8 @@ class TestConversations(TestCase):
         self.assertGreater(len(conversations), 5)
     
     def test_get_all_conversations(self):
-        result = h2h.extractor.get_all_records(KEYS["Conversation"], {"status": "all"})
-        self.assertGreater(len(result), 50) # multiple pages 
+        result = h2h.extractor.get_all_records(KEYS["Conversation"], {"status": "active"})
+        self.assertGreater(len(result), 1)
     
     def test_fetch_detail(self):
         self.assertTrue(True)
