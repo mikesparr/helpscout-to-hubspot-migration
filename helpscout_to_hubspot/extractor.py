@@ -13,6 +13,7 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
 # avoid magic strings if possible and prepare for API changes
 KEYS = {
+    "AccessToken": "access_token",
     "Customer": "customers",
     "Conversation": "conversations",
     "Error": "error",
@@ -26,25 +27,77 @@ KEYS = {
     "Value": "value",
     "HREF": "href"
 }
-
 DEFAULT_NESTED_KEYS = ["address", "emails", "phones"]
+MAX_RETRIES = 5
+
+attempts = 0
+_token = "unknown"
 
 
 def help():
     return (u"You need to get access keys from each API and create .env first")
 
 def _get_page(url):
-    token = env.str("HELPSCOUT_API_TOKEN")
+    global attempts
+    global _token
+    token = _token #env.str("HELPSCOUT_API_TOKEN")
     headers = {"Authorization": "Bearer {}".format(token)}
-    logging.info("Fetching URL: {}".format(url))
+    logging.debug("Fetching {} with token {} of type {}".format(url, token, type(token)))
     response = requests.get(url, headers=headers)
-    return response.json()
+
+    # check if token expired and refresh, otherwise return
+    if _has_expired_token(response) and attempts <= MAX_RETRIES:
+        attempts += 1
+        _refresh_token()
+        return _get_page(url)
+    else:
+        attempts = 0 # reset
+        return response.json()
+
+def _refresh_token():
+    global _token
+    logging.info("Fetching new access token")
+    request_data = {
+        "grant_type": "client_credentials",
+        "client_id": env.str("HELPSCOUT_CLIENT_ID"),
+        "client_secret": env.str("HELPSCOUT_CLIENT_SECRET")
+    }
+    path = env.str("HELPSCOUT_API_URL")
+    endpoint = "/oauth2/token"
+    url = (path + endpoint)
+    response = requests.post(url, data = request_data)
+    token = response.json().get(KEYS["AccessToken"], "unknown")
+    _token = token.decode('UTF-8') # decode from unicode
+
+def _has_expired_token(response):
+    return response.status_code == 401
+
+def _has_error(obj):
+    return True if obj.get(KEYS["Error"], None) is not None else False
+
+def _has_next_page(obj):
+    if _has_error(obj):
+        return False
+
+    links = obj[KEYS["Links"]]
+    return True if links.get("next", None) is not None else False
 
 def _get_next_page(obj):
     links = obj[KEYS["Links"]]
     next_page_url = links.get("next")[KEYS["HREF"]]
-    time.sleep(.075) # avoid exceeding 10 req/sec rate limit
+    time.sleep(.065) # avoid exceeding 10 req/sec rate limit
     return _get_page(next_page_url)
+
+def _get_initial_records(type, params = None):
+    path = env.str("HELPSCOUT_API_URL")
+    endpoint = "/{}".format(type)
+    url = (path + endpoint)
+
+    # add querystring params if exist (Dictionary)
+    if (params is not None):
+        url += "?{}".format(urllib.urlencode(params))
+
+    return _get_page(url)
 
 def _add_nested_data(obj, keys = DEFAULT_NESTED_KEYS):
     links = obj.get(KEYS["Links"], None)
@@ -64,27 +117,6 @@ def _add_nested_data(obj, keys = DEFAULT_NESTED_KEYS):
     
     return new_obj
 
-def _has_error(obj):
-    return True if obj.get(KEYS["Error"], None) is not None else False
-
-def _has_next_page(obj):
-    if _has_error(obj):
-        return False
-
-    links = obj[KEYS["Links"]]
-    return True if links.get("next", None) is not None else False
-
-def _get_initial_records(type, params = None):
-    path = env.str("HELPSCOUT_API_URL")
-    endpoint = "/{}".format(type)
-    url = (path + endpoint)
-
-    # add querystring params if exist (Dictionary)
-    if (params is not None):
-        url += "?{}".format(urllib.urlencode(params))
-
-    return _get_page(url)
-
 def _without_keys(obj, keys):
     new_obj = {}
     for k,v in obj.iteritems():
@@ -97,7 +129,6 @@ def _clean_up_data(data, keys = [KEYS["Links"], KEYS["Photos"]]):
     logging.info("Removing [{}] from data file".format(keys))
     clean_data = [_without_keys(rec, keys) for rec in data]
     return  clean_data
-
 
 # records
 def get_records(type, params = None):
@@ -126,6 +157,10 @@ def get_all_records(type, params = None):
 
 def get_mailbox_ids():
     response = get_records(KEYS["Mailbox"])
+
+    if response is None:
+        return []
+
     mailboxes = response[KEYS["Embedded"]][KEYS["Mailbox"]]
     id_list = [box["id"] for box in mailboxes]
     return id_list
@@ -139,17 +174,13 @@ def dict_to_file(data, filename):
 
 def main():
     logging.info(KEYS["Mailbox"])
-    print(get_mailbox_ids)
+    print(get_mailbox_ids())
+    logging.info("Finished")
 
     logging.info(KEYS["Customer"])
-    customers = get_records(KEYS["Customer"])
-    print(_has_next_page(customers))
-
-    logging.info("All customers")
-    all_customers = get_all_records(KEYS["Customer"])
-
-    dict_to_file(all_customers, "{}-{}.json".format(KEYS["Customer"], datetime.datetime.utcnow().replace(microsecond=0).isoformat()))
-
+    records = get_all_records(KEYS["Customer"])
+    timestamp = datetime.datetime.utcnow().replace(microsecond=0).isoformat()
+    dict_to_file(records, "{}-{}".format(KEYS["Customer"], timestamp))
     logging.info("Finished")
 
 
