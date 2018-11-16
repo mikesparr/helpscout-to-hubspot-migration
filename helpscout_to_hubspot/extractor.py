@@ -22,12 +22,20 @@ KEYS = {
     "Embedded": "_embedded",
     "Lines": "lines",
     "Links": "_links",
+    "Threads": "threads",
     "Photos": "photoUrl",
-    "Type": "type",
+    "CreatedBy": "createdBy",
+    "AssignedTo": "assignedTo",
+    "Author": "author",
+    "Assignee": "assignee",
     "Value": "value",
+    "Type": "type",
+    "Body": "body",
+    "Source": "source",
     "HREF": "href"
 }
-DEFAULT_NESTED_KEYS = ["address", "emails", "phones"]
+DEFAULT_NESTED_KEYS = ["address", "emails", "phones", "threads"]
+THREAD_TYPES_TO_KEEP = ["message", "customer"] # determine which type of nested data
 MAX_RETRIES = 5
 
 attempts = 0
@@ -108,10 +116,21 @@ def _add_nested_data(obj, keys = DEFAULT_NESTED_KEYS):
     for key in keys:
         if key in links:
             response = _get_page(links[key][KEYS["HREF"]])
-            logging.info(str(response))
             if KEYS["Embedded"] in response:    
                 nested = response[KEYS["Embedded"]][key]
-                new_obj[key] = [{"type": rec[KEYS["Type"]], "value": rec[KEYS["Value"]]} for rec in nested]
+                if key == KEYS["Threads"]:
+                    # filter out unwanted thread types and just grab desired fields
+                    new_obj[key] = [{
+                        KEYS["Author"]: rec.get(KEYS["CreatedBy"], None), 
+                        KEYS["Assignee"]: rec.get(KEYS["AssignedTo"], None), 
+                        KEYS["Body"]: rec.get(KEYS["Body"], None), 
+                        KEYS["Source"]: rec.get(KEYS["Source"], None)
+                    } for rec in nested if rec[KEYS["Type"]] in THREAD_TYPES_TO_KEEP]
+                else:
+                    new_obj[key] = [{
+                        KEYS["Type"]: rec.get(KEYS["Type"], None), 
+                        KEYS["Value"]: rec.get(KEYS["Value"], None)
+                    } for rec in nested]
             elif KEYS["Lines"] in response:
                 new_obj[key] = response[KEYS["Lines"]]
     
@@ -177,10 +196,10 @@ def main():
     print(get_mailbox_ids())
     logging.info("Finished")
 
-    logging.info(KEYS["Customer"])
-    records = get_all_records(KEYS["Customer"])
+    logging.info(KEYS["Conversation"])
+    records = get_all_records(KEYS["Conversation"]) # no params for testing to figure out threads
     timestamp = datetime.datetime.utcnow().replace(microsecond=0).isoformat()
-    dict_to_file(records, "{}-{}.json".format(KEYS["Customer"], timestamp))
+    dict_to_file(records, "{}-{}.json".format(KEYS["Conversation"], timestamp))
     logging.info("Finished")
 
 
