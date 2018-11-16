@@ -3,14 +3,15 @@ This script is intended to extract all data from Helpscout API V2 and prepare an
 
 # Setup
 ## Extractor (HelpScout)
-HelpScout API uses OAuth2 and requires authorization in a browser. You must first set up your API code and secret via the admin console. A trick I like to do for the callback URL is use a webhook testing tool ( https://webhook.site ). You'll generate a unique URL and can use that to register your API App. Then you initiate the authentication request in browser via URL and add the app_id and secret. It will post a response with a `code` to your webhook tester. You then request `auth_token` per instructions and copy the `token` and not the `refresh_token`. Paste the token value in an `.env` file like below, and you have 2 hours to make requests before it expires.
+HelpScout API uses OAuth2 and requires authorization in a browser. You must first set up your API code and secret via the admin site.
 
  * https://developer.helpscout.com/mailbox-api/overview/authentication
 
-## .env file in module folder
+## .env file in module folder or set in your ENV
 ```
 HELPSCOUT_API_URL=https://api.helpscout.net/v2
-HELPSCOUT_API_TOKEN={token from your request here} # need to get before running
+HELPSCOUT_CLIENT_ID={your app id}
+HELPSCOUT_CLIENT_SECRET={your app secret}
 ```
 
 ## Transformer
