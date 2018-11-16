@@ -1,5 +1,8 @@
 import os
+import copy
+import json
 import time
+import datetime
 import urllib
 import logging
 import requests
@@ -8,15 +11,27 @@ from envparse import env
 env.read_envfile()
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
+# avoid magic strings if possible and prepare for API changes
 KEYS = {
     "Customer": "customers",
     "Conversation": "conversations",
-    "Error": "error_description",
-    "Mailbox": "mailboxes"
+    "Error": "error",
+    "ErrorDescription": "error_description",
+    "Mailbox": "mailboxes",
+    "Embedded": "_embedded",
+    "Lines": "lines",
+    "Links": "_links",
+    "Photos": "photoUrl",
+    "Type": "type",
+    "Value": "value",
+    "HREF": "href"
 }
 
+DEFAULT_NESTED_KEYS = ["address", "emails", "phones"]
+
+
 def help():
-    return (u"You need to get access keys from each API and update config first")
+    return (u"You need to get access keys from each API and create .env first")
 
 def _get_page(url):
     token = env.str("HELPSCOUT_API_TOKEN")
@@ -26,20 +41,37 @@ def _get_page(url):
     return response.json()
 
 def _get_next_page(obj):
-    links = obj["_links"]
-    next_page_url = links.get("next")["href"]
-
+    links = obj[KEYS["Links"]]
+    next_page_url = links.get("next")[KEYS["HREF"]]
     time.sleep(.075) # avoid exceeding 10 req/sec rate limit
     return _get_page(next_page_url)
 
+def _add_nested_data(obj, keys = DEFAULT_NESTED_KEYS):
+    links = obj.get(KEYS["Links"], None)
+    if links is None:
+        return obj
+    
+    new_obj = copy.deepcopy(obj)
+    for key in keys:
+        if key in links:
+            response = _get_page(links[key][KEYS["HREF"]])
+            logging.info(str(response))
+            if KEYS["Embedded"] in response:    
+                nested = response[KEYS["Embedded"]][key]
+                new_obj[key] = [{"type": rec[KEYS["Type"]], "value": rec[KEYS["Value"]]} for rec in nested]
+            elif KEYS["Lines"] in response:
+                new_obj[key] = response[KEYS["Lines"]]
+    
+    return new_obj
+
 def _has_error(obj):
-    return True if obj.get("error", None) is not None else False
+    return True if obj.get(KEYS["Error"], None) is not None else False
 
 def _has_next_page(obj):
     if _has_error(obj):
         return False
 
-    links = obj["_links"]
+    links = obj[KEYS["Links"]]
     return True if links.get("next", None) is not None else False
 
 def _get_initial_records(type, params = None):
@@ -53,6 +85,19 @@ def _get_initial_records(type, params = None):
 
     return _get_page(url)
 
+def _without_keys(obj, keys):
+    new_obj = {}
+    for k,v in obj.iteritems():
+        if k not in keys:
+            new_obj[k] = v
+    
+    return new_obj
+
+def _clean_up_data(data, keys = [KEYS["Links"], KEYS["Photos"]]):
+    logging.info("Removing [{}] from data file".format(keys))
+    clean_data = [_without_keys(rec, keys) for rec in data]
+    return  clean_data
+
 
 # records
 def get_records(type, params = None):
@@ -63,36 +108,47 @@ def get_all_records(type, params = None):
     records = []
 
     if _has_error(response):
-        logging.error("Error: {}".format(response[KEYS["Error"]]))
+        logging.error("Error: {}".format(response[KEYS["ErrorDescription"]]))
     else:
         # add initial page to list
-        records.extend(response["_embedded"][type])
+        records.extend(response[KEYS["Embedded"]][type])
 
         # if multiple pages, loop, fetch and append additional records
         while _has_next_page(response):
             response = _get_next_page(response)
-            records.extend(response["_embedded"][type])
+            records.extend(response[KEYS["Embedded"]][type])
     
-    logging.info("Returning {} {}".format(len(records), type))
-    return records
+    # get nested data within records via _links
+    updated_records = [_add_nested_data(rec) for rec in records]
+    
+    logging.info("Returning {} {}".format(len(updated_records), type))
+    return updated_records
 
 def get_mailbox_ids():
     response = get_records(KEYS["Mailbox"])
-    mailboxes = response["_embedded"][KEYS["Mailbox"]]
+    mailboxes = response[KEYS["Embedded"]][KEYS["Mailbox"]]
     id_list = [box["id"] for box in mailboxes]
     return id_list
+
+def dict_to_file(data, filename):
+    clean_data = _clean_up_data(data)
+    logging.info("Writing to file {}".format(filename))
+    with open(filename, 'w') as file:
+        file.write(json.dumps(clean_data))
 
 
 def main():
     logging.info(KEYS["Mailbox"])
     print(get_mailbox_ids)
 
-    logging.info(KEYS["Conversation"])
-    conversations = get_records(KEYS["Conversation"], {"status": "all"})
-    print(_has_next_page(conversations))
+    logging.info(KEYS["Customer"])
+    customers = get_records(KEYS["Customer"])
+    print(_has_next_page(customers))
 
-    logging.info("All conversations")
-    _ = get_all_records(KEYS["Conversation"], {"status": "all"})
+    logging.info("All customers")
+    all_customers = get_all_records(KEYS["Customer"])
+
+    dict_to_file(all_customers, "{}-{}.json".format(KEYS["Customer"], datetime.datetime.utcnow().replace(microsecond=0).isoformat()))
 
     logging.info("Finished")
 

@@ -16,7 +16,7 @@ HELPSCOUT_API_TOKEN={token from your request here} # need to get before running
 ## Transformer
 TODO
 
-## Loader
+## Loader (Hubspot)
 TODO
 
 
