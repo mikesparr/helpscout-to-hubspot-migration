@@ -1,0 +1,196 @@
+import os
+import csv
+import copy
+import json
+import time
+import datetime
+import logging
+from envparse import env
+
+env.read_envfile()
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+
+def _get_dot_val(obj, string_field):
+    """Uses string dot notation to locate field in object and get value"""
+
+    value = None
+
+    try:
+        parts = string_field.split(".")
+        for part in parts[:-1]:
+            obj = obj.get(part, None)
+
+        if obj is not None and isinstance(obj, dict):
+            value = obj.get(parts[-1])
+    except Exception, e:
+        logging.error( "Error getting field {}".format(string_field) )
+    
+    logging.debug("Returning {} for {}".format(value, string_field))
+    return value
+
+def _get_header_fields_from_mapping(mapping):
+    """Returns list of field names for header row"""
+
+    fields = []
+
+    if (len(mapping) <= 0):
+        logging.warn("Mapping has no fields")
+    else:
+        fields = [field["title"] for field in mapping]
+
+    logging.debug("Returning header fields {}".format(fields))
+    return fields
+
+def _get_transformed_obj(obj, mapping):
+    """Returns new dict using mapping"""
+    new_obj = {}
+
+    for field in mapping:
+        new_obj[field["dest"]] = _get_dot_val(obj, field["source"])
+    
+    logging.debug("Returning transformed obj {}".format(str(new_obj)))
+    return new_obj
+
+def flatten(obj):
+    """Flattens dict if has nested list using indices as keys"""
+    new_obj = {}
+
+    for k,v in obj.iteritems():
+        if isinstance(v, list):
+            logging.debug("Object has nested list")
+            new_obj[k] = {str(idx): flatten(val) for idx, val in enumerate(v)}
+        elif isinstance(v, dict):
+            logging.debug("Object has nested dict")
+            new_obj[k] = flatten(v)
+        else:
+            new_obj[k] = v
+    
+    logging.debug("Returning new obj {}".format(str(new_obj)))
+    return new_obj
+
+def transform(data, mapping):
+    """Transforms date using mapping into list of new dicts"""
+    new_data = []
+
+    for row in data:
+        flattened = flatten(row)
+        transformed = _get_transformed_obj(flattened, mapping)
+        new_data.append(transformed)
+    
+    logging.debug("Returning transformed data {}".format(str(new_data)))
+    return new_data
+
+def list_to_csv(data, mapping, filename):
+    """Creates CSV file from list of dicts"""
+
+    with open(filename, "wb+") as output_file:
+        out = csv.writer(output_file, quoting=csv.QUOTE_MINIMAL)
+        out.writerow(_get_header_fields_from_mapping(mapping))
+        for row in data:
+            out.writerow([row[val["dest"]] for val in mapping])
+
+        logging.info("Generated CSV file {} with {} rows".format(filename, len(data)))
+
+
+def main():
+
+    TEST_RECORDS = [
+        {
+            "type": "email", 
+            "status": "active", 
+            "mailboxId": 42,
+            "subject": "Some support request",
+            "preview": "This is the \"message\" content",
+            "threads": [
+                {
+                    "type": "message",
+                    "body": "This is the message content", 
+                    "source": {
+                        "type": "email"
+                    },
+                    "author": {
+                        "first_name": "Sam",
+                        "last_name": "Smith",
+                        "email": "sam@smith.com"
+                    }
+                }
+            ]
+        },
+        {
+            "type": "email", 
+            "status": "active", 
+            "mailboxId": 42,
+            "subject": "Some support request",
+            "preview": "Thanks we will let you know",
+            "threads": [
+                {
+                    "type": "message",
+                    "body": "Thanks we will let you know", 
+                    "source": {
+                        "type": "email"
+                    },
+                    "author": {
+                        "first_name": "Sam",
+                        "last_name": "Smith",
+                        "email": "sam@smith.com"
+                    }
+                }
+            ]
+        },
+        {
+            "type": "email", 
+            "status": "active", 
+            "mailboxId": 42,
+            "subject": "Some support request",
+            "preview": "This is the message content",
+            "threads": [
+                {
+                    "type": "message",
+                    "body": "This is the message content", 
+                    "source": {
+                        "type": "email"
+                    },
+                    "author": {
+                        "first_name": "Sam",
+                        "last_name": "Smith",
+                        "email": "sam@smith.com"
+                    }
+                }
+            ]
+        }
+    ]
+
+    TEST_MAPPING = [
+        {
+            "title": "Mailbox",
+            "source": "mailboxId",
+            "dest": "box"
+        },
+        {
+            "title": "Type",
+            "source": "type",
+            "dest": "type"
+        },
+        {
+            "title": "Subject",
+            "source": "subject",
+            "dest": "subject"
+        },
+        {
+            "title": "Text",
+            "source": "preview",
+            "dest": "text"
+        },
+        {
+            "title": "Author",
+            "source": "threads.0.author.email",
+            "dest": "email"
+        }
+    ]
+
+    my_list = transform(TEST_RECORDS, TEST_MAPPING)
+    list_to_csv(my_list, TEST_MAPPING, "test_output.csv")
+    
+
+if __name__ == '__main__':
+    main()

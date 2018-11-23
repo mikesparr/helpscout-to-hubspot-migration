@@ -1,1 +1,1 @@
-from .extractor import help
+from helpscout_to_hubspot import *

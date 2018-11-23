@@ -14,10 +14,13 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 # avoid magic strings if possible and prepare for API changes
 KEYS = {
     "AccessToken": "access_token",
+    "User": "users",
     "Customer": "customers",
     "Conversation": "conversations",
     "Error": "error",
+    "Errors": "errors",
     "ErrorDescription": "error_description",
+    "Message": "message",
     "Mailbox": "mailboxes",
     "Embedded": "_embedded",
     "Lines": "lines",
@@ -161,6 +164,7 @@ def get_all_records(type, params = None):
         logging.error("Error: {}".format(response[KEYS["ErrorDescription"]]))
     else:
         # add initial page to list
+        logging.debug(str(response))
         records.extend(response[KEYS["Embedded"]][type])
 
         # if multiple pages, loop, fetch and append additional records
@@ -196,10 +200,10 @@ def main():
     print(get_mailbox_ids())
     logging.info("Finished")
 
-    logging.info(KEYS["Conversation"])
-    records = get_all_records(KEYS["Conversation"]) # no params for testing to figure out threads
+    logging.info(KEYS["User"])
     timestamp = datetime.datetime.utcnow().replace(microsecond=0).isoformat()
-    dict_to_file(records, "{}-{}.json".format(KEYS["Conversation"], timestamp))
+    records = get_all_records(KEYS["User"]) # no params for testing to figure out thread
+    dict_to_file(records, "{}-{}.json".format(KEYS["User"], timestamp))
     logging.info("Finished")
 
 
