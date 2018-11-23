@@ -15,7 +15,7 @@ HelpScout API uses OAuth2 and requires authorization in a browser. You must firs
  * https://developer.helpscout.com/mailbox-api/overview/authentication
 
 ## 2. Create an .env file in module folder or set in your ENV
-```
+```bash
 HELPSCOUT_API_URL=https://api.helpscout.net/v2
 HELPSCOUT_CLIENT_ID={your app id}
 HELPSCOUT_CLIENT_SECRET={your app secret}
