@@ -1,37 +1,3 @@
-# Helpscout To Hubspot Migration
-This script is intended to extract all data from Helpscout API V2 and prepare and load it into Hubspot Service Hub
-
-# Install
-```bash
-git clone git@github.com:mikesparr/helpscout-to-hubspot-migration.git
-cd helpscout-to-hubspot-migration
-python setup.py install
-```
-
-# Setup
-## 1. Extractor (HelpScout)
-HelpScout API uses OAuth2 and requires authorization in a browser. You must first set up your API code and secret via the admin site.
-
- * https://developer.helpscout.com/mailbox-api/overview/authentication
-
-## 2. Create an .env file in module folder or set in your ENV
-```
-HELPSCOUT_API_URL=https://api.helpscout.net/v2
-HELPSCOUT_CLIENT_ID={your app id}
-HELPSCOUT_CLIENT_SECRET={your app secret}
-```
-
-## 3. Transformer
-Use default mappings to generated Hubspot CSVs, or create your own. The `transformer` will convert 
-your output files from the extractor to a desired format, and optionally output CSV files.
-
-## 4. Loader (Hubspot)
-Hubspot recommends using their CSV loader so take the CSV output file(s) and load them per their instructions https://knowledge.hubspot.com/articles/kcs_article/contacts/associate-records-via-import
-
-# Usage
-```python
-# example.py
-
 import os
 import helpscout_to_hubspot
 from helpscout_to_hubspot import extractor
@@ -78,12 +44,3 @@ conversation_list = transformer.transform(conversations_dict, conversation_mappi
 transformer.list_to_csv(conversation_list, conversation_mapping, get_filename(EXT_KEYS["Conversation"], FILE_TYPES["Sink"]))
 
 # expected result are 3 .json and 3 .csv files - use .csv files and import into Hubspot
-
-```
-
-# Test
-`python setup.py test` or `nosetests`
-
-# Disclaimer
-I built this for one-time use and am sharing in case others need. Absolutely no warranties or support are provided so 
-use at your own risk. If APIs change after (November 2018) then you can fork this repo and customize to your needs

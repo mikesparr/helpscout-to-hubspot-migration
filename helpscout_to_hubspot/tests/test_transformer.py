@@ -6,7 +6,7 @@ from unittest import TestCase
 
 from helpscout_to_hubspot import transformer
 
-test_dict = {
+TEST_DICT = {
     "foo": "bar",
     "items": [
         {"name": "apple"},
@@ -20,46 +20,52 @@ test_dict = {
     }
 }
 
-test_mapping = [
+TEST_MAPPING = [
     {"title": "Foo", "source": "foo", "dest": "foo"},
     {"title": "Fruit", "source": "items.0.name", "dest": "fruit"},
     {"title": "First Name", "source": "person.first", "dest": "first"},
     {"title": "Last Name", "source": "person.last", "dest": "last"},
     {"title": "Email", "source": "person.email", "dest": "email"}
 ]
+DIR_PATH = os.path.dirname(os.path.realpath(__file__))
+TEST_JSON_FILE = "{}/test_conversations.json".format(DIR_PATH)
 
 class TestHelpers(TestCase):
+    def test_json_to_dict(self):
+        result = transformer.json_to_dict(TEST_JSON_FILE)
+        self.assertTrue(len(result) == 3) # 3 records
+
     def test_get_dot_value(self):
-        result = transformer._get_dot_val(test_dict, "person.last")
-        self.assertEqual(result, test_dict["person"]["last"])
+        result = transformer._get_dot_val(TEST_DICT, "person.last")
+        self.assertEqual(result, TEST_DICT["person"]["last"])
 
     def test_get_headers(self):
-        expected = [field["title"] for field in test_mapping]
-        result = transformer._get_header_fields_from_mapping(test_mapping)
+        expected = [field["title"] for field in TEST_MAPPING]
+        result = transformer._get_header_fields_from_mapping(TEST_MAPPING)
         self.assertEqual(result, expected)
 
     def test_flatten(self):
-        result = transformer.flatten(test_dict)
+        result = transformer.flatten(TEST_DICT)
         self.assertEqual(result["items"]["0"]["name"], "apple")
 
 class TestTransform(TestCase):
     def test_transform(self):
         expected = [{
-            "foo": test_dict["foo"],
-            "fruit": test_dict["items"][0]["name"],
-            "first": test_dict["person"]["first"],
-            "last": test_dict["person"]["last"],
-            "email": test_dict["person"]["email"]
+            "foo": TEST_DICT["foo"],
+            "fruit": TEST_DICT["items"][0]["name"],
+            "first": TEST_DICT["person"]["first"],
+            "last": TEST_DICT["person"]["last"],
+            "email": TEST_DICT["person"]["email"]
         }]
-        result = transformer.transform([test_dict], test_mapping)
+        result = transformer.transform([TEST_DICT], TEST_MAPPING)
         self.assertEqual(result, expected)
     
 class TestWriteCSV(TestCase):
     def test_list_to_csv(self):
         test_filename = "delete_me.csv"
-        test_list = transformer.transform([test_dict], test_mapping)
+        test_list = transformer.transform([TEST_DICT], TEST_MAPPING)
 
-        transformer.list_to_csv(test_list, test_mapping, test_filename)
+        transformer.list_to_csv(test_list, TEST_MAPPING, test_filename)
 
         time.sleep(.25) # give time to write file
         with open(test_filename) as csvfile:

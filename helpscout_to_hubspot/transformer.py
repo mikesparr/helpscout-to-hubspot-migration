@@ -10,13 +10,22 @@ from envparse import env
 env.read_envfile()
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
+# avoid magic strings
+KEYS = {
+    "Title": "title",
+    "Source": "source",
+    "Dest": "dest"
+}
+DOT_DELIMITER = "."
+
+
 def _get_dot_val(obj, string_field):
     """Uses string dot notation to locate field in object and get value"""
 
     value = None
 
     try:
-        parts = string_field.split(".")
+        parts = string_field.split(DOT_DELIMITER)
         for part in parts[:-1]:
             obj = obj.get(part, None)
 
@@ -36,7 +45,7 @@ def _get_header_fields_from_mapping(mapping):
     if (len(mapping) <= 0):
         logging.warn("Mapping has no fields")
     else:
-        fields = [field["title"] for field in mapping]
+        fields = [field[KEYS["Title"]] for field in mapping]
 
     logging.debug("Returning header fields {}".format(fields))
     return fields
@@ -46,7 +55,7 @@ def _get_transformed_obj(obj, mapping):
     new_obj = {}
 
     for field in mapping:
-        new_obj[field["dest"]] = _get_dot_val(obj, field["source"])
+        new_obj[field[KEYS["Dest"]]] = _get_dot_val(obj, field[KEYS["Source"]])
     
     logging.debug("Returning transformed obj {}".format(str(new_obj)))
     return new_obj
@@ -80,6 +89,15 @@ def transform(data, mapping):
     logging.debug("Returning transformed data {}".format(str(new_data)))
     return new_data
 
+def json_to_dict(filename):
+    """Loads JSON file and returns dict"""
+    try:
+        with open(filename) as file:
+            return json.loads(file.read())
+    except IOError, ioe:
+        logging.error(ioe)
+        return None
+
 def list_to_csv(data, mapping, filename):
     """Creates CSV file from list of dicts"""
 
@@ -87,7 +105,7 @@ def list_to_csv(data, mapping, filename):
         out = csv.writer(output_file, quoting=csv.QUOTE_MINIMAL)
         out.writerow(_get_header_fields_from_mapping(mapping))
         for row in data:
-            out.writerow([row[val["dest"]] for val in mapping])
+            out.writerow([row[val[KEYS["Dest"]]] for val in mapping])
 
         logging.info("Generated CSV file {} with {} rows".format(filename, len(data)))
 

@@ -1,4 +1,9 @@
 from unittest import TestCase
 
-import helpscout_to_hubspot as h2h
+from helpscout_to_hubspot import loader
+
+class TestHelp(TestCase):
+    def test_is_string(self):
+        s = loader.help()
+        self.assertTrue(isinstance(s, basestring))
 

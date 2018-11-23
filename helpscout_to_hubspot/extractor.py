@@ -41,7 +41,7 @@ DEFAULT_NESTED_KEYS = ["address", "emails", "phones", "threads"]
 THREAD_TYPES_TO_KEEP = ["message", "customer"] # determine which type of nested data
 MAX_RETRIES = 5
 
-attempts = 0
+_attempts = 0
 _token = "unknown"
 
 
@@ -49,7 +49,7 @@ def help():
     return (u"You need to get access keys from each API and create .env first")
 
 def _get_page(url):
-    global attempts
+    global _attempts
     global _token
     token = _token #env.str("HELPSCOUT_API_TOKEN")
     headers = {"Authorization": "Bearer {}".format(token)}
@@ -57,12 +57,12 @@ def _get_page(url):
     response = requests.get(url, headers=headers)
 
     # check if token expired and refresh, otherwise return
-    if _has_expired_token(response) and attempts <= MAX_RETRIES:
-        attempts += 1
+    if _has_expired_token(response) and _attempts <= MAX_RETRIES:
+        _attempts += 1
         _refresh_token()
         return _get_page(url)
     else:
-        attempts = 0 # reset
+        _attempts = 0 # reset
         return response.json()
 
 def _refresh_token():

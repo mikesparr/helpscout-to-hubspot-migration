@@ -17,7 +17,8 @@
 .vscode
 
 # produced files
-customers-*
-conversations-*
-mailboxes-*
-users-*
+customers*
+conversations*
+mailboxes*
+users*
+test_output*
