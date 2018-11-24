@@ -1,1 +1,9 @@
-[{"title": "Field", "source": "source.key", "dest": "dest_key"}]
+[
+    {"title": "ID", "source": "number", "dest": "id"},
+    {"title": "Customer ID", "source": "primaryCustomer.id", "dest": "customer_id"},
+    {"title": "Source", "source": "source.type", "dest": "type"},
+    {"title": "Created By", "source": "createdBy.email", "dest": "created_by"},
+    {"title": "Assignee", "source": "assignee.email", "dest": "assignee"},
+    {"title": "Preview", "source": "preview", "dest": "preview"},
+    {"title": "Created", "source": "createdAt", "dest": "created"}
+]

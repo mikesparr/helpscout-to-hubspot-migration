@@ -1,0 +1,6 @@
+[
+    {"title": "ID", "source": "id", "dest": "id"},
+    {"title": "First Name", "source": "firstName", "dest": "first_name"},
+    {"title": "Last Name", "source": "lastName", "dest": "last_name"},
+    {"title": "Email", "source": "emails.0.value", "dest": "email"}
+]

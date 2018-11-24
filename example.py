@@ -24,7 +24,7 @@ users = extractor.get_all_records(EXT_KEYS["User"])
 extractor.dict_to_file(users, get_filename(EXT_KEYS["User"], FILE_TYPES["Source"]))
 customers = extractor.get_all_records(EXT_KEYS["Customer"])
 extractor.dict_to_file(customers, get_filename(EXT_KEYS["Customer"], FILE_TYPES["Source"]))
-conversations = extractor.get_all_records(EXT_KEYS["Conversation"])
+conversations = extractor.get_all_records(EXT_KEYS["Conversation"], {"status": "all"})
 extractor.dict_to_file(conversations, get_filename(EXT_KEYS["Conversation"], FILE_TYPES["Source"]))
 
 # transform extracted data into CSV for Hubspot import

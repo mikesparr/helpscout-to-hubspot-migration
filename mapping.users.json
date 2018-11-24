@@ -1,1 +1,10 @@
-[{"title": "Field", "source": "source.key", "dest": "dest_key"}]
+[
+    {"title": "ID", "source": "id", "dest": "id"},
+    {"title": "Type", "source": "type", "dest": "type"},
+    {"title": "Role", "source": "role", "dest": "role"},
+    {"title": "First Name", "source": "firstName", "dest": "first_name"},
+    {"title": "Last Name", "source": "lastName", "dest": "last_name"},
+    {"title": "Email", "source": "email", "dest": "email"},
+    {"title": "Timezone", "source": "timezone", "dest": "timezone"},
+    {"title": "Created", "source": "createdAt", "dest": "created"}
+]

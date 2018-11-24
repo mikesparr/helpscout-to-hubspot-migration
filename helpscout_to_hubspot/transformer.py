@@ -64,15 +64,19 @@ def flatten(obj):
     """Flattens dict if has nested list using indices as keys"""
     new_obj = {}
 
-    for k,v in obj.iteritems():
-        if isinstance(v, list):
-            logging.debug("Object has nested list")
-            new_obj[k] = {str(idx): flatten(val) for idx, val in enumerate(v)}
-        elif isinstance(v, dict):
-            logging.debug("Object has nested dict")
-            new_obj[k] = flatten(v)
-        else:
-            new_obj[k] = v
+    if isinstance(obj, dict):
+        for k,v in obj.iteritems():
+            if isinstance(v, list):
+                new_obj[k] = {str(idx): flatten(val) for idx, val in enumerate(v)}
+            elif isinstance(v, dict):
+                new_obj[k] = flatten(v)
+            elif isinstance(v, basestring):
+                new_obj[k] = v.encode("utf-8")
+            else:
+                new_obj[k] = v
+    else:
+        logging.debug("*** Object was not a dict ***".format(obj))
+        new_obj = obj
     
     logging.debug("Returning new obj {}".format(str(new_obj)))
     return new_obj
