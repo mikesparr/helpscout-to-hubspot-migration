@@ -62,6 +62,13 @@ TEST_MAPPING_WITH_FILTER = [
     {"title": "Last Name", "source": "person.last", "dest": "last"},
     {"title": "Email", "source": "person.email", "dest": "email", "excludes": ["john@doe.com"]}
 ]
+TEST_MAPPING_WITH_PARTIAL_VALUE_FILTER = [
+    {"title": "Foo", "source": "foo", "dest": "foo"},
+    {"title": "Fruit", "source": "items.0.name", "dest": "fruit"},
+    {"title": "First Name", "source": "person.first", "dest": "first"},
+    {"title": "Last Name", "source": "person.last", "dest": "last"},
+    {"title": "Email", "source": "person.email", "dest": "email", "excludes": ["doe.com"]}
+]
 TEST_MAPPING_WITH_MULTIPLE_FILTERS = [
     {"title": "Foo", "source": "foo", "dest": "foo"},
     {"title": "Fruit", "source": "items.0.name", "dest": "fruit", "excludes": ["apple"]},
@@ -94,9 +101,15 @@ class TestHelpers(TestCase):
         result1 = transformer._is_excluded(TEST_DICT_2, TEST_MAPPING_WITH_FILTER)
         result2 = transformer._is_excluded(TEST_DICT, TEST_MAPPING_WITH_FILTER)
         result3 = transformer._is_excluded(TEST_DICT_FLATTENED, TEST_MAPPING_WITH_MULTIPLE_FILTERS)
+        # partial value exclusion (Issue #2)
+        result4 = transformer._is_excluded(TEST_DICT, TEST_MAPPING_WITH_PARTIAL_VALUE_FILTER)
+        result5 = transformer._is_excluded(TEST_DICT_2, TEST_MAPPING_WITH_PARTIAL_VALUE_FILTER)
         self.assertTrue(result1)
         self.assertFalse(result2)
         self.assertTrue(result3) # another field was flagged
+        # partial value exclusion (Issue #2)
+        self.assertTrue(result4)
+        self.assertTrue(result5) # both true because have 'doe.com' in email
 
 class TestTransform(TestCase):
     def test_transform(self):
