@@ -20,6 +20,20 @@ TEST_DICT = {
     }
 }
 
+TEST_DICT_FLATTENED = {
+    "foo": "bar",
+    "items": {
+        "0": {"name": "apple"},
+        "1": {"name": "banana"},
+        "2": {"name": "orange"}
+    },
+    "person": {
+        "first": "Jane",
+        "last": "Doe",
+        "email": "jane@doe.com"
+    }
+}
+
 TEST_DICT_2 = {
     "foo": "bar",
     "items": [
@@ -48,6 +62,13 @@ TEST_MAPPING_WITH_FILTER = [
     {"title": "Last Name", "source": "person.last", "dest": "last"},
     {"title": "Email", "source": "person.email", "dest": "email", "excludes": ["john@doe.com"]}
 ]
+TEST_MAPPING_WITH_MULTIPLE_FILTERS = [
+    {"title": "Foo", "source": "foo", "dest": "foo"},
+    {"title": "Fruit", "source": "items.0.name", "dest": "fruit", "excludes": ["apple"]},
+    {"title": "First Name", "source": "person.first", "dest": "first"},
+    {"title": "Last Name", "source": "person.last", "dest": "last"},
+    {"title": "Email", "source": "person.email", "dest": "email", "excludes": ["john@doe.com"]}
+]
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 TEST_JSON_FILE = "{}/test_conversations.json".format(DIR_PATH)
 
@@ -68,6 +89,14 @@ class TestHelpers(TestCase):
     def test_flatten(self):
         result = transformer.flatten(TEST_DICT)
         self.assertEqual(result["items"]["0"]["name"], "apple")
+    
+    def test_is_excluded(self):
+        result1 = transformer._is_excluded(TEST_DICT_2, TEST_MAPPING_WITH_FILTER)
+        result2 = transformer._is_excluded(TEST_DICT, TEST_MAPPING_WITH_FILTER)
+        result3 = transformer._is_excluded(TEST_DICT_FLATTENED, TEST_MAPPING_WITH_MULTIPLE_FILTERS)
+        self.assertTrue(result1)
+        self.assertFalse(result2)
+        self.assertTrue(result3) # another field was flagged
 
 class TestTransform(TestCase):
     def test_transform(self):

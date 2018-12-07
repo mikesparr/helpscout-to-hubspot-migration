@@ -14,7 +14,8 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 KEYS = {
     "Title": "title",
     "Source": "source",
-    "Dest": "dest"
+    "Dest": "dest",
+    "Excludes": "excludes"
 }
 DOT_DELIMITER = "."
 
@@ -60,6 +61,20 @@ def _get_transformed_obj(obj, mapping):
     logging.debug("Returning transformed obj {}".format(str(new_obj)))
     return new_obj
 
+def _is_excluded(obj, mapping):
+    """Flags flattened object if should be excluded based on mapping source key"""
+    exclude = False
+
+    for field in mapping:
+        exclude_list = field.get(KEYS["Excludes"], None)
+        if (exclude_list is not None and len(exclude_list) > 0):
+            test_val = _get_dot_val(obj, field[KEYS["Source"]])
+            # only change if positive test
+            if test_val in exclude_list:
+                exclude = True
+
+    return exclude
+
 def flatten(obj):
     """Flattens dict if has nested list using indices as keys"""
     new_obj = {}
@@ -87,8 +102,10 @@ def transform(data, mapping):
 
     for row in data:
         flattened = flatten(row)
-        transformed = _get_transformed_obj(flattened, mapping)
-        new_data.append(transformed)
+        # check first if excluded, otherwise transform and add to list
+        if (_is_excluded(flattened, mapping)) is False:
+            transformed = _get_transformed_obj(flattened, mapping)
+            new_data.append(transformed)
     
     logging.debug("Returning transformed data {}".format(str(new_data)))
     return new_data
