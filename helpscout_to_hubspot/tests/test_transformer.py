@@ -20,12 +20,33 @@ TEST_DICT = {
     }
 }
 
+TEST_DICT_2 = {
+    "foo": "bar",
+    "items": [
+        {"name": "orange"},
+        {"name": "banana"},
+        {"name": "pineapple"}
+    ],
+    "person": {
+        "first": "John",
+        "last": "Doe",
+        "email": "john@doe.com"
+    }
+}
+
 TEST_MAPPING = [
     {"title": "Foo", "source": "foo", "dest": "foo"},
     {"title": "Fruit", "source": "items.0.name", "dest": "fruit"},
     {"title": "First Name", "source": "person.first", "dest": "first"},
     {"title": "Last Name", "source": "person.last", "dest": "last"},
     {"title": "Email", "source": "person.email", "dest": "email"}
+]
+TEST_MAPPING_WITH_FILTER = [
+    {"title": "Foo", "source": "foo", "dest": "foo"},
+    {"title": "Fruit", "source": "items.0.name", "dest": "fruit"},
+    {"title": "First Name", "source": "person.first", "dest": "first"},
+    {"title": "Last Name", "source": "person.last", "dest": "last"},
+    {"title": "Email", "source": "person.email", "dest": "email", "excludes": ["john@doe.com"]}
 ]
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 TEST_JSON_FILE = "{}/test_conversations.json".format(DIR_PATH)
@@ -58,6 +79,20 @@ class TestTransform(TestCase):
             "email": TEST_DICT["person"]["email"]
         }]
         result = transformer.transform([TEST_DICT], TEST_MAPPING)
+        self.assertEqual(result, expected)
+
+    def test_transform_with_filter(self):
+        test_sources = [TEST_DICT, TEST_DICT_2]
+        expected = [{
+            "foo": TEST_DICT["foo"],
+            "fruit": TEST_DICT["items"][0]["name"],
+            "first": TEST_DICT["person"]["first"],
+            "last": TEST_DICT["person"]["last"],
+            "email": TEST_DICT["person"]["email"]
+        }] # should not have john doe
+
+        result = transformer.transform(test_sources, TEST_MAPPING_WITH_FILTER)
+        self.assertEqual(len(result), 1)
         self.assertEqual(result, expected)
     
 class TestWriteCSV(TestCase):
