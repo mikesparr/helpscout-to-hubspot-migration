@@ -70,8 +70,10 @@ def _is_excluded(obj, mapping):
         if (exclude_list is not None and len(exclude_list) > 0):
             test_val = _get_dot_val(obj, field[KEYS["Source"]])
             # only change if positive test
-            if test_val in exclude_list:
-                exclude = True
+            for to_exclude in exclude_list:
+                # test for partial match
+                if to_exclude in test_val:
+                    exclude = True
 
     return exclude
 
