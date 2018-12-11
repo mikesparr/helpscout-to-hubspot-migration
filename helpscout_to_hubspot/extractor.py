@@ -9,7 +9,7 @@ import requests
 from envparse import env
 
 env.read_envfile()
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+logging.basicConfig(format=u'%(levelname)s:%(message)s', level=logging.INFO)
 
 # avoid magic strings if possible and prepare for API changes
 KEYS = {
@@ -96,7 +96,7 @@ def _has_next_page(obj):
 def _get_next_page(obj):
     links = obj[KEYS["Links"]]
     next_page_url = links.get("next")[KEYS["HREF"]]
-    time.sleep(.065) # avoid exceeding 10 req/sec rate limit
+    time.sleep(.01) # avoid exceeding 10 req/sec rate limit
     return _get_page(next_page_url)
 
 def _get_initial_records(type, params = None):

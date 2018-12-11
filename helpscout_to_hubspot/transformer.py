@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import os
 import csv
 import copy
@@ -8,7 +10,7 @@ import logging
 from envparse import env
 
 env.read_envfile()
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+logging.basicConfig(format=u'%(levelname)s:%(message)s', level=logging.INFO)
 
 # avoid magic strings
 KEYS = {
@@ -32,10 +34,10 @@ def _get_dot_val(obj, string_field):
 
         if obj is not None and isinstance(obj, dict):
             value = obj.get(parts[-1])
-    except Exception, e:
+    except Exception:
         logging.error( "Error getting field {}".format(string_field) )
     
-    logging.debug("Returning {} for {}".format(value, string_field))
+    logging.debug("Returning {} for {}".format( str(value).decode('utf-8'), string_field))
     return value
 
 def _get_header_fields_from_mapping(mapping):
@@ -68,7 +70,7 @@ def _is_excluded(obj, mapping):
     for field in mapping:
         exclude_list = field.get(KEYS["Excludes"], None)
         if (exclude_list is not None and len(exclude_list) > 0):
-            test_val = _get_dot_val(obj, field[KEYS["Source"]])
+            test_val = str( _get_dot_val(obj, field[KEYS["Source"]]) ).decode('utf-8')
             # only change if positive test
             for to_exclude in exclude_list:
                 # test for partial match

@@ -23,7 +23,7 @@ TEST_DICT = {
 TEST_DICT_FLATTENED = {
     "foo": "bar",
     "items": {
-        "0": {"name": "apple"},
+        "0": {"name": "\xf0\x9f\x8f\xa0 apple"},
         "1": {"name": "banana"},
         "2": {"name": "orange"}
     },
