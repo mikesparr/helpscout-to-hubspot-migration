@@ -7,6 +7,7 @@ from unittest import TestCase
 from helpscout_to_hubspot import transformer
 
 TEST_DICT = {
+    "id": 1,
     "foo": "bar",
     "items": [
         {"name": "apple"},
@@ -21,6 +22,7 @@ TEST_DICT = {
 }
 
 TEST_DICT_FLATTENED = {
+    "id": 1,
     "foo": "bar",
     "items": {
         "0": {"name": "\xf0\x9f\x8f\xa0 apple"},
@@ -35,6 +37,7 @@ TEST_DICT_FLATTENED = {
 }
 
 TEST_DICT_2 = {
+    "id": 2,
     "foo": "bar",
     "items": [
         {"name": "orange"},
@@ -76,6 +79,13 @@ TEST_MAPPING_WITH_MULTIPLE_FILTERS = [
     {"title": "Last Name", "source": "person.last", "dest": "last"},
     {"title": "Email", "source": "person.email", "dest": "email", "excludes": ["john@doe.com"]}
 ]
+TEST_NESTED_MAPPING = [
+    {"title": "Foo", "source": "items", "dest": [
+        {"title": "Foo", "source": "_parent.id", "dest": "Foo ID"},
+        {"title": "Fruit", "source": "name", "dest": "fruit"}
+    ]}
+]
+
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 TEST_JSON_FILE = "{}/test_conversations.json".format(DIR_PATH)
 
@@ -135,6 +145,18 @@ class TestTransform(TestCase):
 
         result = transformer.transform(test_sources, TEST_MAPPING_WITH_FILTER)
         self.assertEqual(len(result), 1)
+        self.assertEqual(result, expected)
+    
+    def test_transform_with_nested(self):
+        test_sources = [TEST_DICT]
+        expected = [
+            {"Foo ID": 1, "fruit": "apple"},
+            {"Foo ID": 1, "fruit": "banana"},
+            {"Foo ID": 1, "fruit": "orange"}
+        ] # includes parent ID and each nested value
+
+        result = transformer.transform(test_sources, TEST_NESTED_MAPPING)
+        self.assertEqual(len(result), 3)
         self.assertEqual(result, expected)
     
 class TestWriteCSV(TestCase):
