@@ -107,6 +107,14 @@ class TestHelpers(TestCase):
         result = transformer.flatten(TEST_DICT)
         self.assertEqual(result["items"]["0"]["name"], "apple")
     
+    def test_is_nested_mapping(self):
+        # true
+        result = transformer._is_nested_mapping(TEST_NESTED_MAPPING[0])
+        self.assertTrue(result)
+        # false
+        result = transformer._is_nested_mapping(TEST_MAPPING[0])
+        self.assertFalse(result)
+    
     def test_is_excluded(self):
         result1 = transformer._is_excluded(TEST_DICT_2, TEST_MAPPING_WITH_FILTER)
         result2 = transformer._is_excluded(TEST_DICT, TEST_MAPPING_WITH_FILTER)
@@ -156,8 +164,8 @@ class TestTransform(TestCase):
         ] # includes parent ID and each nested value
 
         result = transformer.transform(test_sources, TEST_NESTED_MAPPING)
-        self.assertEqual(len(result), 3)
         self.assertEqual(result, expected)
+        self.assertEqual(len(result), 3)
     
 class TestWriteCSV(TestCase):
     def test_list_to_csv(self):

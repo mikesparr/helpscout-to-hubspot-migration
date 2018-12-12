@@ -17,20 +17,28 @@ KEYS = {
     "Title": "title",
     "Source": "source",
     "Dest": "dest",
-    "Excludes": "excludes"
+    "Excludes": "excludes",
+    "List": "list",
+    "Parent": "_parent"
 }
 DOT_DELIMITER = "."
 
 
-def _get_dot_val(obj, string_field):
+def _get_dot_val(obj, string_field, ctx = None):
     """Uses string dot notation to locate field in object and get value"""
 
     value = None
 
     try:
         parts = string_field.split(DOT_DELIMITER)
+
+        # check if _parent is first part, then apply following field to ctx object instead
         for part in parts[:-1]:
-            obj = obj.get(part, None)
+            if part == KEYS["Parent"]:
+                logging.debug("Parent field detected so switching to context source")
+                obj = ctx if ctx is not None else {}
+            else:
+                obj = obj.get(part, None)
 
         if obj is not None and isinstance(obj, dict):
             value = obj.get(parts[-1])
@@ -53,18 +61,40 @@ def _get_header_fields_from_mapping(mapping):
     logging.debug("Returning header fields {}".format(fields))
     return fields
 
-def _get_transformed_obj(obj, mapping):
+def _get_transformed_obj(obj, mapping, ctx = None):
     """Returns new dict using mapping"""
+
     new_obj = {}
+    new_list = []
 
     for field in mapping:
-        new_obj[field[KEYS["Dest"]]] = _get_dot_val(obj, field[KEYS["Source"]])
+        # if dest field is list, iterate through it's fields
+        if _is_nested_mapping(field):
+            logging.debug("Handling nested field {}".format(str(field)))
+            # loop through list field
+            for item in ctx[ field[KEYS["Source"]] ]:
+                temp_obj = {}
+                logging.debug("Item in items {}".format(str(item)))
+                for sub_field in field[KEYS["Dest"]]:
+                    logging.debug("Handling sub_field {}".format(str(sub_field)))
+                    # add ctx in case _parent field referenced in nested mapping
+                    temp_obj[ sub_field[KEYS["Dest"]] ] = _get_dot_val(item, sub_field[KEYS["Source"]], ctx)
+
+                new_list.append(temp_obj)
+        else:
+            new_obj[field[KEYS["Dest"]]] = _get_dot_val(obj, field[KEYS["Source"]])
     
     logging.debug("Returning transformed obj {}".format(str(new_obj)))
-    return new_obj
+    return new_list if len(new_list) > 0 else new_obj
+
+def _is_nested_mapping(field):
+    """Returns true if nested mapping"""
+
+    return type(field[KEYS["Dest"]]).__name__ == KEYS["List"]
 
 def _is_excluded(obj, mapping):
     """Flags flattened object if should be excluded based on mapping source key"""
+
     exclude = False
 
     for field in mapping:
@@ -81,6 +111,7 @@ def _is_excluded(obj, mapping):
 
 def flatten(obj):
     """Flattens dict if has nested list using indices as keys"""
+
     new_obj = {}
 
     if isinstance(obj, dict):
@@ -102,20 +133,27 @@ def flatten(obj):
 
 def transform(data, mapping):
     """Transforms date using mapping into list of new dicts"""
+
     new_data = []
 
     for row in data:
         flattened = flatten(row)
         # check first if excluded, otherwise transform and add to list
         if (_is_excluded(flattened, mapping)) is False:
-            transformed = _get_transformed_obj(flattened, mapping)
-            new_data.append(transformed)
+            transformed = _get_transformed_obj(flattened, mapping, row)
+            # check if list or single object
+            logging.debug("transformed type is {}".format(type(transformed).__name__))
+            if type(transformed).__name__ == KEYS["List"]:
+                new_data.extend(transformed)
+            else:
+                new_data.append(transformed)
     
     logging.debug("Returning transformed data {}".format(str(new_data)))
     return new_data
 
 def json_to_dict(filename):
     """Loads JSON file and returns dict"""
+
     try:
         with open(filename) as file:
             return json.loads(file.read())
@@ -137,103 +175,7 @@ def list_to_csv(data, mapping, filename):
 
 def main():
 
-    TEST_RECORDS = [
-        {
-            "type": "email", 
-            "status": "active", 
-            "mailboxId": 42,
-            "subject": "Some support request",
-            "preview": "This is the \"message\" content",
-            "threads": [
-                {
-                    "type": "message",
-                    "body": "This is the message content", 
-                    "source": {
-                        "type": "email"
-                    },
-                    "author": {
-                        "first_name": "Sam",
-                        "last_name": "Smith",
-                        "email": "sam@smith.com"
-                    }
-                }
-            ]
-        },
-        {
-            "type": "email", 
-            "status": "active", 
-            "mailboxId": 42,
-            "subject": "Some support request",
-            "preview": "Thanks we will let you know",
-            "threads": [
-                {
-                    "type": "message",
-                    "body": "Thanks we will let you know", 
-                    "source": {
-                        "type": "email"
-                    },
-                    "author": {
-                        "first_name": "Sam",
-                        "last_name": "Smith",
-                        "email": "sam@smith.com"
-                    }
-                }
-            ]
-        },
-        {
-            "type": "email", 
-            "status": "active", 
-            "mailboxId": 42,
-            "subject": "Some support request",
-            "preview": "This is the message content",
-            "threads": [
-                {
-                    "type": "message",
-                    "body": "This is the message content", 
-                    "source": {
-                        "type": "email"
-                    },
-                    "author": {
-                        "first_name": "Sam",
-                        "last_name": "Smith",
-                        "email": "sam@smith.com"
-                    }
-                }
-            ]
-        }
-    ]
-
-    TEST_MAPPING = [
-        {
-            "title": "Mailbox",
-            "source": "mailboxId",
-            "dest": "box"
-        },
-        {
-            "title": "Type",
-            "source": "type",
-            "dest": "type"
-        },
-        {
-            "title": "Subject",
-            "source": "subject",
-            "dest": "subject"
-        },
-        {
-            "title": "Text",
-            "source": "preview",
-            "dest": "text"
-        },
-        {
-            "title": "Author",
-            "source": "threads.0.author.email",
-            "dest": "email"
-        }
-    ]
-
-    my_list = transform(TEST_RECORDS, TEST_MAPPING)
-    list_to_csv(my_list, TEST_MAPPING, "test_output.csv")
-    
+    print("View README or example.py for usage examples")
 
 if __name__ == '__main__':
     main()
