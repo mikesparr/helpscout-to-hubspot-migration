@@ -33,6 +33,7 @@ KEYS = {
     "Assignee": "assignee",
     "Value": "value",
     "Type": "type",
+    "Thread": "threads",
     "Body": "body",
     "Source": "source",
     "HREF": "href"

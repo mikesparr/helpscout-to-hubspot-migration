@@ -1,0 +1,11 @@
+[
+    {"title": "Threads", "source": "threads", "dest": [
+        {"title": "Created", "source": "_parent.createdAt", "dest": "created_at"},
+        {"title": "Source", "source": "_parent.source.type", "dest": "source"},
+        {"title": "Conversation ID", "source": "_parent.number", "dest": "conversation_id"},
+        {"title": "Subject", "source": "_parent.subject", "dest": "subject"},
+        {"title": "Author", "source": "author.email", "dest": "author"},
+        {"title": "Assignee", "source": "assignee.email", "dest": "assignee"},
+        {"title": "Body", "source": "body", "dest": "body"}
+    ]}
+]

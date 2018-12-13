@@ -1,16 +1,21 @@
-from __future__ import unicode_literals
+# -*- coding: utf-8 -*- 
 
 import os
+import sys
 import csv
 import copy
 import json
 import time
 import datetime
 import logging
+import traceback
 from envparse import env
 
+reload(sys)
+sys.setdefaultencoding('utf8')
+
 env.read_envfile()
-logging.basicConfig(format=u'%(levelname)s:%(message)s', level=logging.INFO)
+logging.basicConfig(format=u'%(levelname)s:%(message)s', level=logging.DEBUG)
 
 # avoid magic strings
 KEYS = {
@@ -42,10 +47,10 @@ def _get_dot_val(obj, string_field, ctx = None):
 
         if obj is not None and isinstance(obj, dict):
             value = obj.get(parts[-1])
+            logging.debug("Got value of type {}".format(type(value).__name__))
     except Exception:
         logging.error( "Error getting field {}".format(string_field) )
     
-    logging.debug("Returning {} for {}".format( str(value).decode('utf-8'), string_field))
     return value
 
 def _get_header_fields_from_mapping(mapping):
@@ -70,13 +75,13 @@ def _get_transformed_obj(obj, mapping, ctx = None):
     for field in mapping:
         # if dest field is list, iterate through it's fields
         if _is_nested_mapping(field):
-            logging.debug("Handling nested field {}".format(str(field)))
+            logging.debug("Handling nested field {}".format( json.dumps(field) ) )
             # loop through list field
             for item in ctx[ field[KEYS["Source"]] ]:
                 temp_obj = {}
-                logging.debug("Item in items {}".format(str(item)))
+                logging.debug("Item in items {}".format(json.dumps(item)))
                 for sub_field in field[KEYS["Dest"]]:
-                    logging.debug("Handling sub_field {}".format(str(sub_field)))
+                    logging.debug("Handling sub_field {}".format( json.dumps(sub_field) ) )
                     # add ctx in case _parent field referenced in nested mapping
                     temp_obj[ sub_field[KEYS["Dest"]] ] = _get_dot_val(item, sub_field[KEYS["Source"]], ctx)
 
@@ -84,7 +89,7 @@ def _get_transformed_obj(obj, mapping, ctx = None):
         else:
             new_obj[field[KEYS["Dest"]]] = _get_dot_val(obj, field[KEYS["Source"]])
     
-    logging.debug("Returning transformed obj {}".format(str(new_obj)))
+    logging.debug("Returning transformed obj {}".format(json.dumps(new_obj)))
     return new_list if len(new_list) > 0 else new_obj
 
 def _is_nested_mapping(field):
@@ -128,7 +133,7 @@ def flatten(obj):
         logging.debug("*** Object was not a dict ***".format(obj))
         new_obj = obj
     
-    logging.debug("Returning new obj {}".format(str(new_obj)))
+    logging.debug("Returning new obj {}".format(json.dumps(new_obj)))
     return new_obj
 
 def transform(data, mapping):
@@ -148,7 +153,7 @@ def transform(data, mapping):
             else:
                 new_data.append(transformed)
     
-    logging.debug("Returning transformed data {}".format(str(new_data)))
+    logging.debug("Returning transformed data {}".format(json.dumps(new_data)))
     return new_data
 
 def json_to_dict(filename):
@@ -164,13 +169,27 @@ def json_to_dict(filename):
 def list_to_csv(data, mapping, filename):
     """Creates CSV file from list of dicts"""
 
+    error_count = 0
+
+    # test for nested mapping and replace
+    if len(mapping) > 0:
+        first_field = mapping[0]
+        if _is_nested_mapping(first_field):
+            mapping = first_field[KEYS["Dest"]]
+
     with open(filename, "wb+") as output_file:
         out = csv.writer(output_file, quoting=csv.QUOTE_MINIMAL)
         out.writerow(_get_header_fields_from_mapping(mapping))
         for row in data:
-            out.writerow([row[val[KEYS["Dest"]]] for val in mapping])
+            try:
+                out.writerow([ str(row[val[KEYS["Dest"]]]).encode('utf-8') for val in mapping])
+            except Exception:
+                traceback.print_exc()
+                logging.info("--- Skipped row ---")
+                error_count += 1
 
         logging.info("Generated CSV file {} with {} rows".format(filename, len(data)))
+        logging.info("Caught {} errors".format(error_count))
 
 
 def main():

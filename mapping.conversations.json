@@ -1,7 +1,16 @@
 [
-    {"title": "ID", "source": "number", "dest": "id"},
+    {"title": "Conversation ID", "source": "number", "dest": "id"},
     {"title": "Customer ID", "source": "primaryCustomer.id", "dest": "customer_id"},
     {"title": "Source", "source": "source.type", "dest": "type"},
+    {"title": "Subject", "source": "subject", "dest": "subject", "excludes": [
+        "High Need Area Customer",
+        "Mail Failure - no recipient addresses",
+        "Free Leads Added",
+        "New PIPELINE territory is Available on",
+        "Agent removed from HQHN",
+        "PIPELINE Waiting List Territory Open for Subscription",
+        "Disputed Lead Status"
+    ]},
     {"title": "Created By", "source": "createdBy.email", "dest": "created_by"},
     {"title": "Assignee", "source": "assignee.email", "dest": "assignee"},
     {"title": "Preview", "source": "preview", "dest": "preview"},
