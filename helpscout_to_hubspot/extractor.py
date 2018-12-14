@@ -199,13 +199,19 @@ def dict_to_file(data, filename):
 def main():
     logging.info(KEYS["Mailbox"])
     print(get_mailbox_ids())
+    print("-" * 30)
+    mailboxes = get_all_records(KEYS["Mailbox"])
+    print(mailboxes)
+    print("-" * 30)
+    active_conversations = get_all_records(KEYS["Conversation"])
+    print(active_conversations)
     logging.info("Finished")
 
-    logging.info(KEYS["User"])
-    timestamp = datetime.datetime.utcnow().replace(microsecond=0).isoformat()
-    records = get_all_records(KEYS["User"]) # no params for testing to figure out thread
-    dict_to_file(records, "{}-{}.json".format(KEYS["User"], timestamp))
-    logging.info("Finished")
+    #logging.info(KEYS["User"])
+    #timestamp = datetime.datetime.utcnow().replace(microsecond=0).isoformat()
+    #records = get_all_records(KEYS["User"]) # no params for testing to figure out thread
+    #dict_to_file(records, "{}-{}.json".format(KEYS["User"], timestamp))
+    #logging.info("Finished")
 
 
 if __name__ == '__main__':

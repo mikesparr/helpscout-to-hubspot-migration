@@ -14,5 +14,6 @@
     {"title": "Created By", "source": "createdBy.email", "dest": "created_by"},
     {"title": "Assignee", "source": "assignee.email", "dest": "assignee"},
     {"title": "Preview", "source": "preview", "dest": "preview"},
-    {"title": "Created", "source": "createdAt", "dest": "created"}
+    {"title": "Created", "source": "createdAt", "dest": "created"},
+    {"title": "Status", "source": "status", "dest": "status"}
 ]
