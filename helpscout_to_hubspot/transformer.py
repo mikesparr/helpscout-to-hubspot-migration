@@ -24,9 +24,16 @@ KEYS = {
     "Dest": "dest",
     "Excludes": "excludes",
     "List": "list",
-    "Parent": "_parent"
+    "Parent": "_parent",
+    "FieldMailbox": "mailboxId"
 }
 DOT_DELIMITER = "."
+
+# Github issue #5 - manually map mailboxId (HelpScout) to Pipeline name (Hubspot)
+# I considered adding a Dict dest type check in mapping but not worth it for specific tech transfer
+MAILBOX_TO_PIPELINE = {
+    "123": "Test Mailbox"
+}
 
 
 def _get_dot_val(obj, string_field, ctx = None):
@@ -46,7 +53,9 @@ def _get_dot_val(obj, string_field, ctx = None):
                 obj = obj.get(part, None)
 
         if obj is not None and isinstance(obj, dict):
-            value = obj.get(parts[-1])
+            # check if mailbox field and return mapped pipeline string
+            raw_value = obj.get(parts[-1])
+            value = MAILBOX_TO_PIPELINE[str(raw_value)] if string_field == KEYS["FieldMailbox"] else raw_value
             logging.debug("Got value of type {}".format(type(value).__name__))
     except Exception:
         logging.error( "Error getting field {}".format(string_field) )
