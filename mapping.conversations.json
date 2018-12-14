@@ -1,6 +1,7 @@
 [
     {"title": "Conversation ID", "source": "number", "dest": "id"},
     {"title": "Customer ID", "source": "primaryCustomer.id", "dest": "customer_id"},
+    {"title": "Mailbox ID", "source": "mailboxId", "dest": "mailbox_id"},
     {"title": "Source", "source": "source.type", "dest": "type"},
     {"title": "Subject", "source": "subject", "dest": "subject", "excludes": [
         "High Need Area Customer",

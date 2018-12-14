@@ -9,6 +9,7 @@ from helpscout_to_hubspot import transformer
 TEST_DICT = {
     "id": 1,
     "foo": "bar",
+    "mailboxId": 123,
     "items": [
         {"name": "apple"},
         {"name": "banana"},
@@ -18,7 +19,8 @@ TEST_DICT = {
         "first": "Jane",
         "last": "Doe",
         "email": "jane@doe.com"
-    }
+    },
+    "status": "active"
 }
 
 TEST_DICT_FLATTENED = {
@@ -84,6 +86,16 @@ TEST_NESTED_MAPPING = [
         {"title": "Foo", "source": "_parent.id", "dest": "Foo ID"},
         {"title": "Fruit", "source": "name", "dest": "fruit"}
     ]}
+]
+# Issues: 5 and 6
+TEST_MAPPING_WITH_MAILBOX_ID_AND_STATUS = [
+    {"title": "Foo", "source": "foo", "dest": "foo"},
+    {"title": "Fruit", "source": "items.0.name", "dest": "fruit"},
+    {"title": "First Name", "source": "person.first", "dest": "first"},
+    {"title": "Last Name", "source": "person.last", "dest": "last"},
+    {"title": "Email", "source": "person.email", "dest": "email"},
+    {"title": "Mailbox", "source": "mailboxId", "dest": "mailbox_id"},
+    {"title": "Status", "source": "status", "dest": "status"}
 ]
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -166,6 +178,19 @@ class TestTransform(TestCase):
         result = transformer.transform(test_sources, TEST_NESTED_MAPPING)
         self.assertEqual(result, expected)
         self.assertEqual(len(result), 3)
+    
+    def test_transform_with_mailbox_to_pipeline(self):
+        expected = [{
+            "foo": TEST_DICT["foo"],
+            "fruit": TEST_DICT["items"][0]["name"],
+            "first": TEST_DICT["person"]["first"],
+            "last": TEST_DICT["person"]["last"],
+            "email": TEST_DICT["person"]["email"],
+            "mailbox_id": "Test Mailbox", # even though value is a numeric ID
+            "status": TEST_DICT["status"]
+        }]
+        result = transformer.transform([TEST_DICT], TEST_MAPPING_WITH_MAILBOX_ID_AND_STATUS)
+        self.assertEqual(result, expected)
     
 class TestWriteCSV(TestCase):
     def test_list_to_csv(self):
